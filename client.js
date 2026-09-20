@@ -10,6 +10,44 @@ window.__ModuleLoader__.load({
     const FEISHU_WEBHOOK_REF = 'feishuWebhookUrl'
     const REMOTE_NAMESPACE = 'dsh-web-access-notifier'
 
+    function statusSchema(value) {
+      if (!value || typeof value !== 'object') throw new TypeError('invalid notifier status')
+      if (typeof value.serviceReady !== 'boolean' || typeof value.webhookConfigured !== 'boolean') throw new TypeError('invalid notifier status flags')
+      for (const key of ['lastAttemptAt', 'lastSuccessAt', 'lastErrorCode']) {
+        if (value[key] !== null && typeof value[key] !== 'string') throw new TypeError(`invalid notifier status ${key}`)
+      }
+      if (value.tokenLength !== null && typeof value.tokenLength !== 'number') throw new TypeError('invalid notifier token length')
+      return value
+    }
+
+    const strict = (parse) => ({ mode: 'strict', typeSymbol: 'dsh-web-access-notifier#result', schema: { parse } })
+    const descriptor = (method, result) => ({
+      id: `dsh-web-access-notifier#dsh-web-access-notifier/${method}`,
+      service: 'dshWebAccessNotifier',
+      namespace: REMOTE_NAMESPACE,
+      method,
+      invocation: { kind: 'direct' },
+      parameters: [],
+      result
+    })
+    const TYPERT_REMOTE = {
+      package: 'dsh-web-access-notifier',
+      descriptors: [
+        descriptor('status', strict(statusSchema)),
+        descriptor('send', strict((value) => {
+          if (!value || typeof value !== 'object' || value.ok !== true) throw new TypeError('invalid notifier send result')
+          statusSchema(value.status)
+          return value
+        }))
+      ]
+    }
+
+    function unwrapRemote(result) {
+      if (result?.ok === true) return result.value
+      if (result?.ok === false) throw result.error
+      throw new Error('Invalid DSH Remote response')
+    }
+
     function Card({ scope, remote, credentials }) {
       const snapshot = scope.getSnapshot()
       const value = snapshot.value ?? { enabled: true, publicOrigin: '' }
@@ -30,8 +68,8 @@ window.__ModuleLoader__.load({
       useEffect(() => {
         let active = true
         Promise.all([
-          credentials.describe([FEISHU_WEBHOOK_REF]),
-          remote.status()
+          credentials.describe([FEISHU_WEBHOOK_REF]).then(unwrapRemote),
+          remote.status().then(unwrapRemote)
         ]).then(([credentialState, nextStatus]) => {
           if (!active) return
           setWebhookConfigured(Boolean(credentialState[FEISHU_WEBHOOK_REF]?.configured))
@@ -48,7 +86,7 @@ window.__ModuleLoader__.load({
             { op: 'set', path: ['publicOrigin'], value: publicOrigin }
           ], snapshot.revision)
           if (webhook.trim()) {
-            await credentials.set(FEISHU_WEBHOOK_REF, webhook.trim())
+            unwrapRemote(await credentials.set(FEISHU_WEBHOOK_REF, webhook.trim()))
             setWebhook('')
             setWebhookConfigured(true)
           }
@@ -61,12 +99,12 @@ window.__ModuleLoader__.load({
       async function sendNow() {
         setBusy(true); setMessage('')
         try {
-          const result = await remote.send()
+          const result = unwrapRemote(await remote.send())
           setStatus(result.status)
           setMessage('已发送当前 Token')
         } catch (error) {
           setMessage(error?.message ?? '发送失败')
-          try { setStatus(await remote.status()) } catch { /* ignore refresh failure */ }
+          try { setStatus(unwrapRemote(await remote.status())) } catch { /* ignore refresh failure */ }
         } finally { setBusy(false) }
       }
 
@@ -97,15 +135,10 @@ window.__ModuleLoader__.load({
       )
     }
 
-    const inject = [
-      'slots',
-      'settingsScope',
-      'remote',
-      'remote.credentials',
-      'remote.dsh-web-access-notifier'
-    ]
+    const inject = ['slots', 'settingsScope', 'remote', 'remote.credentials']
 
-    function apply(ctx) {
+    async function apply(ctx) {
+      const disposeRemote = await ctx.remote.$mount(TYPERT_REMOTE)
       const scope = ctx.settingsScope.bind({ namespace: SETTINGS_NAMESPACE })
       const remote = ctx.remote[REMOTE_NAMESPACE]
       const credentials = ctx.remote.credentials
@@ -115,6 +148,7 @@ window.__ModuleLoader__.load({
         order: 100,
         inject: () => ({})
       }, (props) => React.createElement(Card, { ...props, scope, remote, credentials })))
+      return disposeRemote
     }
 
     exports.inject = inject

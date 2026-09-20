@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react'
+import { TYPERT_REMOTE } from '../typert.remote-client.js'
 
 const SETTINGS_NAMESPACE = 'dsh-web-access-notifier'
 const FEISHU_WEBHOOK_REF = 'feishuWebhookUrl'
 const REMOTE_NAMESPACE = 'dsh-web-access-notifier'
+
+function unwrapRemote(result) {
+  if (result?.ok === true) return result.value
+  if (result?.ok === false) throw result.error
+  throw new Error('Invalid DSH Remote response')
+}
 
 function Card({ scope, remote, credentials }) {
   const snapshot = scope.getSnapshot()
@@ -24,8 +31,8 @@ function Card({ scope, remote, credentials }) {
   useEffect(() => {
     let active = true
     Promise.all([
-      credentials.describe([FEISHU_WEBHOOK_REF]),
-      remote.status()
+      credentials.describe([FEISHU_WEBHOOK_REF]).then(unwrapRemote),
+      remote.status().then(unwrapRemote)
     ]).then(([credentialState, nextStatus]) => {
       if (!active) return
       setWebhookConfigured(Boolean(credentialState[FEISHU_WEBHOOK_REF]?.configured))
@@ -42,7 +49,7 @@ function Card({ scope, remote, credentials }) {
         { op: 'set', path: ['publicOrigin'], value: publicOrigin }
       ], snapshot.revision)
       if (webhook.trim()) {
-        await credentials.set(FEISHU_WEBHOOK_REF, webhook.trim())
+        unwrapRemote(await credentials.set(FEISHU_WEBHOOK_REF, webhook.trim()))
         setWebhook('')
         setWebhookConfigured(true)
       }
@@ -55,12 +62,12 @@ function Card({ scope, remote, credentials }) {
   async function sendNow() {
     setBusy(true); setMessage('')
     try {
-      const result = await remote.send()
+      const result = unwrapRemote(await remote.send())
       setStatus(result.status)
       setMessage('已发送当前 Token')
     } catch (error) {
       setMessage(error?.message ?? '发送失败')
-      try { setStatus(await remote.status()) } catch { /* ignore refresh failure */ }
+      try { setStatus(unwrapRemote(await remote.status())) } catch { /* ignore refresh failure */ }
     } finally { setBusy(false) }
   }
 
@@ -91,15 +98,10 @@ function Card({ scope, remote, credentials }) {
   )
 }
 
-export const inject = [
-  'slots',
-  'settingsScope',
-  'remote',
-  'remote.credentials',
-  'remote.dsh-web-access-notifier'
-]
+export const inject = ['slots', 'settingsScope', 'remote', 'remote.credentials']
 
-export function apply(ctx) {
+export async function apply(ctx) {
+  await ctx.remote.$mount(TYPERT_REMOTE)
   const scope = ctx.settingsScope.bind({ namespace: SETTINGS_NAMESPACE })
   const remote = ctx.remote[REMOTE_NAMESPACE]
   const credentials = ctx.remote.credentials
