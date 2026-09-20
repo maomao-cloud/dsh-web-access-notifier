@@ -1,6 +1,6 @@
 {
   "name": "dsh-web-access-notifier",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "DSH Web 访问通知器：通过飞书机器人发送当前 DSH Web 访问地址。",
   "type": "module",
   "main": "host/index.js",
@@ -10,10 +10,14 @@
     "./host/config": "./host/config.js",
     "./host/token-url": "./host/token-url.js",
     "./host/feishu-client": "./host/feishu-client.js",
-    "./host/notifier": "./host/notifier.js"
+    "./host/notifier": "./host/notifier.js",
+    "./cordis.patch.yml": "./cordis.patch.yml"
   },
-  "files": ["host", "client", "README.md", "LICENSE"],
+  "files": ["host", "client", "cordis.patch.yml", "README.md", "LICENSE"],
   "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "platform": "web",
       "immediately": true,

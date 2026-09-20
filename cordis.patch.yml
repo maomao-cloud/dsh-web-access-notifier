@@ -1,0 +1,11 @@
+# dsh-web-access-notifier bundle patch.
+# Installing the package with `dsh plugin --profile web add ...` adds this
+# row to the profile composition automatically. Users can override the values
+# from their profile patch or from the Settings > Plugins page.
+- insert:
+    - id: dsh-web-access-notifier
+      name: dsh-web-access-notifier
+      config:
+        enabled: true
+        publicOrigin: ''
+        timeoutMs: 8000

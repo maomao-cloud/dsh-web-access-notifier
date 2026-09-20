@@ -15,13 +15,30 @@ DSH Web 访问通知器：DSH Web 服务启动完成后，通过 DSH 原生 `Con
 
 ## 安装与组合
 
-将本包加入 Web profile 的插件依赖，并在 profile 的 `cordis.patch.yml` 中加入 Host Plugin。Client Plugin 由 `dsh.client` 声明自动进入 Web Client bundle：
+插件现在带有 `dsh.bundle.patch` 声明，可以直接使用 DSH 的插件管理命令安装：
+
+```bash
+dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier
+# 或安装已发布的 tarball
+dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier-0.1.1.tgz
+```
+
+安装后，Profile 会自动合成 `dsh-web-access-notifier` Host row，Client Plugin 由 `dsh.client` 声明自动进入 Web Client bundle。建议首次测试使用独立 Profile：
+
+```bash
+dsh --profile dsh-notifier-test --from-default-profile web
+dsh plugin --profile dsh-notifier-test add /absolute/path/to/dsh-web-access-notifier
+dsh --profile dsh-notifier-test --no-open
+```
+
+默认 `publicOrigin` 为空，因此插件会安全地跳过自动发送，等待用户从设置页面配置外部地址。也可以在 Profile patch 中覆盖：
 
 ```yaml
-- name: dsh-web-access-notifier
+- id: dsh-web-access-notifier
   config:
     enabled: true
     publicOrigin: https://dsh.example.com
+    timeoutMs: 8000
 ```
 
 运行时需要已组合 DSH 原生 `settings`、`credentials`、`dsh-api-remotes` 与 Web Client Settings/Plugins UI。若 settings provider 未挂载，插件仍可读取组合配置，但无法持久化页面修改。
