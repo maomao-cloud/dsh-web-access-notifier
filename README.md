@@ -7,7 +7,7 @@ DSH Web 访问通知器：DSH Web 服务启动完成后，通过 DSH 原生 `Con
 - Host Plugin 与 Client Plugin 双端实现；
 - 仅依赖 `webServer`、`connection` 和 Loader settle，不解析日志、不读取 Token 文件、不生成 Token；
 - 配置写入 DSH `settings` namespace：`dsh-web-access-notifier`；
-- Webhook 通过 DSH `credentials` 的 `feishuWebhookUrl` 保存，页面只显示配置状态；
+- Webhook 通过 DSH `credentials` 的 `feishuWebhookUrl` 保存，并在已认证的插件配置页面中明文显示和编辑；
 - DSH 启动后同一进程只自动发送一次；手动发送始终强制重新获取 Token；
 - 飞书请求支持超时、非 2xx、业务错误和有限重试（立即、5 秒、30 秒）；
 - 通知失败只记录脱敏错误，不阻断 DSH 主进程；
@@ -20,7 +20,7 @@ DSH Web 访问通知器：DSH Web 服务启动完成后，通过 DSH 原生 `Con
 ```bash
 dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier
 # 或安装已发布的 tarball
-dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier-0.1.1.tgz
+dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier-0.2.0.tgz
 ```
 
 安装后，Profile 会自动合成 `dsh-web-access-notifier` Host row，Client Plugin 由 `dsh.client` 声明自动进入 Web Client bundle。建议首次测试使用独立 Profile：
@@ -51,7 +51,7 @@ dsh --profile dsh-notifier-test --no-open
 | `publicOrigin` | `""` | 仅允许 `http`/`https` origin；不能有路径、query、fragment 或用户信息 |
 | `timeoutMs` | `8000` | 飞书单次请求超时 |
 
-Webhook 不进入普通 settings，而是写入凭据引用 `feishuWebhookUrl`。完整 Token、完整访问 URL 和完整 Webhook 均不会写入普通日志或状态对象。
+Webhook 不进入普通 settings，而是写入凭据引用 `feishuWebhookUrl`。插件通过已认证的专用 Remote 读取当前值并在折叠配置区中明文显示；完整 Token、完整访问 URL 和完整 Webhook 仍不会写入普通日志或状态对象。
 
 ## 验证
 

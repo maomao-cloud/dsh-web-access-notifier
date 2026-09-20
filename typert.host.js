@@ -14,6 +14,12 @@ const sendResultSchema = z.object({
   status: statusSchema
 })
 
+const configurationSchema = z.object({
+  enabled: z.boolean(),
+  publicOrigin: z.string(),
+  webhookUrl: z.string()
+})
+
 const method = (name, result, typeSymbol) => ({
   id: `dsh-web-access-notifier#dsh-web-access-notifier/${name}`,
   service: 'dshWebAccessNotifier',
@@ -41,10 +47,12 @@ export const TYPERT = {
       tags: [],
       members: [
         { kind: 'method', name: 'status', signature: 'status(): NotifierStatus' },
+        { kind: 'method', name: 'configuration', signature: 'configuration(): Promise<NotifierConfiguration>' },
         { kind: 'method', name: 'send', signature: 'send(): Promise<SendResult>' }
       ],
       types: [
         { name: 'NotifierStatus', declaration: 'interface NotifierStatus { serviceReady: boolean; webhookConfigured: boolean; lastAttemptAt: string | null; lastSuccessAt: string | null; lastErrorCode: string | null; tokenLength: number | null }' },
+        { name: 'NotifierConfiguration', declaration: 'interface NotifierConfiguration { enabled: boolean; publicOrigin: string; webhookUrl: string }' },
         { name: 'SendResult', declaration: 'interface SendResult { ok: true; status: NotifierStatus }' }
       ]
     }],
@@ -53,6 +61,7 @@ export const TYPERT = {
   },
   invocations: [
     method('status', statusSchema, 'dsh-web-access-notifier#NotifierStatus'),
+    method('configuration', configurationSchema, 'dsh-web-access-notifier#NotifierConfiguration'),
     method('send', sendResultSchema, 'dsh-web-access-notifier#SendResult')
   ]
 }

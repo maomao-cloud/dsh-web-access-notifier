@@ -1,8 +1,9 @@
 import z from '@deepseek-ai/schemastery'
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { FeishuClient } from './feishu-client.js'
 import { Notifier } from './notifier.js'
-import { SETTINGS_NAMESPACE, SettingsSchema, validateSettings } from './config.js'
+import { FEISHU_WEBHOOK_REF, SETTINGS_NAMESPACE, SettingsSchema, validateSettings } from './config.js'
 
 export const name = 'dsh-web-access-notifier'
 export const inject = ['webServer', 'connection']
@@ -33,6 +34,20 @@ export class DshWebAccessNotifier extends TypertRemoteService {
 
   status() {
     return this.notifier.status()
+  }
+
+  async configuration() {
+    const settings = this.settingsScope?.get?.() ?? {
+      enabled: this.config.enabled ?? true,
+      publicOrigin: this.config.publicOrigin ?? ''
+    }
+    const resolved = await this.ctx.get('credentials')?.resolve(credentialRef(FEISHU_WEBHOOK_REF))
+    this.notifier.state.webhookConfigured = Boolean(resolved?.value)
+    return {
+      enabled: Boolean(settings.enabled),
+      publicOrigin: String(settings.publicOrigin ?? ''),
+      webhookUrl: String(resolved?.value ?? '')
+    }
   }
 
   async send() {

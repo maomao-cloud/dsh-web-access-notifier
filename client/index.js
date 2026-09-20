@@ -31,11 +31,14 @@ function Card({ scope, remote, credentials }) {
   useEffect(() => {
     let active = true
     Promise.all([
-      credentials.describe([FEISHU_WEBHOOK_REF]).then(unwrapRemote),
+      remote.configuration().then(unwrapRemote),
       remote.status().then(unwrapRemote)
-    ]).then(([credentialState, nextStatus]) => {
+    ]).then(([configuration, nextStatus]) => {
       if (!active) return
-      setWebhookConfigured(Boolean(credentialState[FEISHU_WEBHOOK_REF]?.configured))
+      setEnabled(Boolean(configuration.enabled))
+      setPublicOrigin(configuration.publicOrigin ?? '')
+      setWebhook(configuration.webhookUrl ?? '')
+      setWebhookConfigured(Boolean(configuration.webhookUrl))
       setStatus(nextStatus)
     }).catch((error) => active && setMessage(error?.message ?? '读取插件状态失败'))
     return () => { active = false }
@@ -50,9 +53,16 @@ function Card({ scope, remote, credentials }) {
       ], snapshot.revision)
       if (webhook.trim()) {
         unwrapRemote(await credentials.set(FEISHU_WEBHOOK_REF, webhook.trim()))
-        setWebhook('')
+        setWebhook(webhook.trim())
         setWebhookConfigured(true)
+      } else if (webhookConfigured) {
+        unwrapRemote(await credentials.unset(FEISHU_WEBHOOK_REF))
+        setWebhookConfigured(false)
       }
+      const savedConfiguration = unwrapRemote(await remote.configuration())
+      setWebhook(savedConfiguration.webhookUrl ?? '')
+      setWebhookConfigured(Boolean(savedConfiguration.webhookUrl))
+      setStatus(unwrapRemote(await remote.status()))
       setMessage('配置已保存')
     } catch (error) {
       setMessage(error?.message ?? '保存失败')
@@ -74,26 +84,29 @@ function Card({ scope, remote, credentials }) {
   const statusText = status?.serviceReady ? 'ready' : 'not ready'
   return React.createElement('section', { style: { display: 'grid', gap: 12, padding: 16 } },
     React.createElement('h3', null, 'DSH Web Access Notifier'),
-    React.createElement('label', null,
-      React.createElement('input', { type: 'checkbox', checked: enabled, onChange: (event) => setEnabled(event.target.checked) }),
-      ' 启用自动通知'
-    ),
-    React.createElement('label', { style: { display: 'grid', gap: 4 } },
-      React.createElement('span', null, `Feishu Webhook：${webhookConfigured ? '已配置' : '未配置'}`),
-      React.createElement('input', { type: 'password', value: webhook, placeholder: webhookConfigured ? '留空表示保持现有凭据' : '请输入飞书群机器人 Webhook', onChange: (event) => setWebhook(event.target.value), autoComplete: 'new-password' })
-    ),
-    React.createElement('label', { style: { display: 'grid', gap: 4 } },
-      React.createElement('span', null, '外部访问地址'),
-      React.createElement('input', { type: 'url', value: publicOrigin, placeholder: 'https://dsh.example.com', onChange: (event) => setPublicOrigin(event.target.value) })
-    ),
     React.createElement('div', null, `当前服务状态：${statusText}`),
     status && React.createElement('div', { style: { fontSize: 12, opacity: 0.8 } },
       `Webhook：${status.webhookConfigured ? '已配置' : '未配置'}；最近成功：${status.lastSuccessAt ?? '暂无'}；错误：${status.lastErrorCode ?? '无'}`
     ),
-    React.createElement('div', { style: { display: 'flex', gap: 8 } },
-      React.createElement('button', { type: 'button', disabled: busy, onClick: save }, busy ? '处理中…' : '保存配置'),
-      React.createElement('button', { type: 'button', disabled: busy || !status?.serviceReady, onClick: sendNow }, '立即发送当前 Token')
+    React.createElement('details', { style: { border: '1px solid rgba(128, 128, 128, 0.3)', borderRadius: 4, padding: '8px 12px' } },
+      React.createElement('summary', { style: { cursor: 'pointer', fontWeight: 600 } }, '通知配置'),
+      React.createElement('div', { style: { display: 'grid', gap: 12, paddingTop: 12 } },
+        React.createElement('label', null,
+          React.createElement('input', { type: 'checkbox', checked: enabled, onChange: (event) => setEnabled(event.target.checked) }),
+          ' 启用自动通知'
+        ),
+        React.createElement('label', { style: { display: 'grid', gap: 4 } },
+          React.createElement('span', null, `Feishu Webhook：${webhookConfigured ? '已配置' : '未配置'}`),
+          React.createElement('input', { type: 'url', value: webhook, placeholder: 'https://open.feishu.cn/open-apis/bot/v2/hook/...', onChange: (event) => setWebhook(event.target.value), autoComplete: 'off' })
+        ),
+        React.createElement('label', { style: { display: 'grid', gap: 4 } },
+          React.createElement('span', null, '外部访问地址'),
+          React.createElement('input', { type: 'url', value: publicOrigin, placeholder: 'https://dsh.example.com', onChange: (event) => setPublicOrigin(event.target.value) })
+        ),
+        React.createElement('button', { type: 'button', disabled: busy, onClick: save, style: { justifySelf: 'start' } }, busy ? '处理中…' : '保存配置')
+      )
     ),
+    React.createElement('button', { type: 'button', disabled: busy || !status?.serviceReady, onClick: sendNow, style: { justifySelf: 'start' } }, '立即发送当前 Token'),
     message && React.createElement('div', { role: 'status' }, message)
   )
 }

@@ -10,6 +10,11 @@ const statusSchema = z.object({
 })
 
 const sendResultSchema = z.object({ ok: z.literal(true), status: statusSchema })
+const configurationSchema = z.object({
+  enabled: z.boolean(),
+  publicOrigin: z.string(),
+  webhookUrl: z.string()
+})
 const descriptor = (method, schema, typeSymbol) => ({
   id: `dsh-web-access-notifier#dsh-web-access-notifier/${method}`,
   service: 'dshWebAccessNotifier',
@@ -25,6 +30,7 @@ export const TYPERT_REMOTE = {
   package: 'dsh-web-access-notifier',
   descriptors: [
     descriptor('status', statusSchema, 'dsh-web-access-notifier#NotifierStatus'),
+    descriptor('configuration', configurationSchema, 'dsh-web-access-notifier#NotifierConfiguration'),
     descriptor('send', sendResultSchema, 'dsh-web-access-notifier#SendResult')
   ]
 }

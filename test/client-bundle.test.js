@@ -36,7 +36,7 @@ test('client bundle mounts Remote and consumes it through a child scope', () => 
     })
     const childRemote = {
       credentials: {},
-      'dsh-web-access-notifier': { status() {}, send() {} }
+      'dsh-web-access-notifier': { status() {}, configuration() {}, send() {} }
     }
     const ctx = {
       remote: parentRemote,
@@ -50,9 +50,9 @@ test('client bundle mounts Remote and consumes it through a child scope', () => 
       }
     }
 
-    plugin.apply(ctx)
+    await plugin.apply(ctx)
     assert.equal(mounted.package, 'dsh-web-access-notifier')
-    assert.deepEqual(Array.from(mounted.descriptors, ({ method }) => method), ['status', 'send'])
+    assert.deepEqual(Array.from(mounted.descriptors, ({ method }) => method), ['status', 'configuration', 'send'])
     const contract = ({ package: packageName, descriptors }) => ({
       package: packageName,
       descriptors: Array.from(descriptors, (item) => ({
@@ -77,6 +77,16 @@ test('client bundle mounts Remote and consumes it through a child scope', () => 
           invocation: { kind: 'direct' },
           parameters: [],
           result: { mode: 'strict', typeSymbol: 'dsh-web-access-notifier#NotifierStatus' },
+          sourceLocation: { file: 'host/index.js', line: 1, column: 1 }
+        },
+        {
+          id: 'dsh-web-access-notifier#dsh-web-access-notifier/configuration',
+          service: 'dshWebAccessNotifier',
+          namespace: 'dsh-web-access-notifier',
+          method: 'configuration',
+          invocation: { kind: 'direct' },
+          parameters: [],
+          result: { mode: 'strict', typeSymbol: 'dsh-web-access-notifier#NotifierConfiguration' },
           sourceLocation: { file: 'host/index.js', line: 1, column: 1 }
         },
         {
