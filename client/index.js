@@ -100,9 +100,9 @@ function Card({ scope, remote, credentials }) {
 
 export const inject = ['remote']
 
-export function apply(ctx) {
-  void ctx.remote.$mount(TYPERT_REMOTE)
-  ctx.inject([
+export async function apply(ctx) {
+  await ctx.remote.$mount(TYPERT_REMOTE)
+  await ctx.inject([
     'slots',
     'settingsScope',
     'remote',

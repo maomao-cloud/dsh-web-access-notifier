@@ -1,6 +1,6 @@
 {
   "name": "dsh-web-access-notifier",
-  "version": "0.1.5",
+  "version": "0.1.8",
   "description": "DSH Web 访问通知器：通过飞书机器人发送当前 DSH Web 访问地址。",
   "type": "module",
   "main": "host/index.js",
@@ -13,7 +13,8 @@
     "./host/notifier": "./host/notifier.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./typert": "./typert.host.js",
-    "./remote": "./typert.remote-client.js"
+    "./remote": "./typert.remote-client.js",
+    "./package.json": "./package.json"
   },
   "files": ["host", "client", "client.js", "cordis.patch.yml", "typert.host.js", "typert.remote-client.js", "README.md", "LICENSE"],
   "dsh": {

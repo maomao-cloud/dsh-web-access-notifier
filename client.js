@@ -20,7 +20,7 @@ window.__ModuleLoader__.load({
       return value
     }
 
-    const strict = (parse) => ({ mode: 'strict', typeSymbol: 'dsh-web-access-notifier#result', schema: { parse } })
+    const strict = (parse, typeSymbol) => ({ mode: 'strict', typeSymbol, schema: { parse } })
     const descriptor = (method, result) => ({
       id: `dsh-web-access-notifier#dsh-web-access-notifier/${method}`,
       service: 'dshWebAccessNotifier',
@@ -28,17 +28,18 @@ window.__ModuleLoader__.load({
       method,
       invocation: { kind: 'direct' },
       parameters: [],
-      result
+      result,
+      sourceLocation: { file: 'host/index.js', line: 1, column: 1 }
     })
     const TYPERT_REMOTE = {
       package: 'dsh-web-access-notifier',
       descriptors: [
-        descriptor('status', strict(statusSchema)),
+        descriptor('status', strict(statusSchema, 'dsh-web-access-notifier#NotifierStatus')),
         descriptor('send', strict((value) => {
           if (!value || typeof value !== 'object' || value.ok !== true) throw new TypeError('invalid notifier send result')
           statusSchema(value.status)
           return value
-        }))
+        }, 'dsh-web-access-notifier#SendResult'))
       ]
     }
 
@@ -137,9 +138,9 @@ window.__ModuleLoader__.load({
 
     const inject = ['remote']
 
-    function apply(ctx) {
-      void ctx.remote.$mount(TYPERT_REMOTE)
-      ctx.inject([
+    async function apply(ctx) {
+      await ctx.remote.$mount(TYPERT_REMOTE)
+      await ctx.inject([
         'slots',
         'settingsScope',
         'remote',

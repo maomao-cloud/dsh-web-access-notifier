@@ -58,7 +58,7 @@ export function apply(ctx, config = {}) {
     timeoutMs: config.timeoutMs ?? 8_000
   }
   ctx.plugin(DshWebAccessNotifier, serviceConfig)
-  ctx.inject(['connection', 'webServer'], (readyCtx) => {
+  ctx.inject([SERVICE_KEY, 'connection', 'webServer'], (readyCtx) => {
     const service = readyCtx.get(SERVICE_KEY)
     const settled = readyCtx.get('loader')?.await()
     const ready = () => {
