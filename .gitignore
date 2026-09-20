@@ -1,0 +1,10 @@
+# Dependencies
+node_modules/
+
+# Build and test output
+dist/
+build/
+coverage/
+
+# Locally packed npm artifacts
+*.tgz
