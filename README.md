@@ -24,7 +24,7 @@ dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier
 dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier-0.2.0.tgz
 ```
 
-安装后，Profile 会自动合成 `dsh-web-access-notifier` Host row，Client Plugin 由 `dsh.client` 声明自动进入 Web Client bundle。建议首次测试使用独立 Profile：
+安装后，Profile 会自动合成 `dsh-web-access-notifier` Host row，Client Plugin 由 `dsh.client` 声明自动进入 Web Client bundle。安装或升级后必须重启 DSH 进程：浏览器端 bundle 可以提前刷新，但已运行的 Host Remote 不会因此替换；未重启时新 Client 调用新 Remote 方法会得到 HTTP 404。建议首次测试使用独立 Profile：
 
 ```bash
 dsh --profile dsh-notifier-test --from-default-profile web

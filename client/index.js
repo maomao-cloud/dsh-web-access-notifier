@@ -32,17 +32,31 @@ function Card({ scope, remote, credentials }) {
 
   useEffect(() => {
     let active = true
-    Promise.all([
+    Promise.allSettled([
       remote.configuration().then(unwrapRemote),
-      remote.status().then(unwrapRemote)
-    ]).then(([configuration, nextStatus]) => {
+      remote.status().then(unwrapRemote),
+      credentials.describe([FEISHU_WEBHOOK_REF]).then(unwrapRemote)
+    ]).then(([configurationResult, statusResult, credentialResult]) => {
       if (!active) return
-      setEnabled(Boolean(configuration.enabled))
-      setPublicOrigin(configuration.publicOrigin ?? '')
-      setWebhook(configuration.webhookUrl ?? '')
-      setWebhookConfigured(Boolean(configuration.webhookUrl))
-      setStatus(nextStatus)
-    }).catch((error) => active && setMessage(error?.message ?? '读取插件状态失败'))
+      if (configurationResult.status === 'fulfilled') {
+        const configuration = configurationResult.value
+        setEnabled(Boolean(configuration.enabled))
+        setPublicOrigin(configuration.publicOrigin ?? '')
+        setWebhook(configuration.webhookUrl ?? '')
+        setWebhookConfigured(Boolean(configuration.webhookUrl))
+      } else {
+        setMessage('插件 Host 尚未加载当前版本，请重启 DSH 后读取 Webhook 地址。')
+      }
+      if (statusResult.status === 'fulfilled') setStatus(statusResult.value)
+      if (configurationResult.status === 'rejected' && credentialResult.status === 'fulfilled') {
+        setWebhookConfigured(Boolean(credentialResult.value[FEISHU_WEBHOOK_REF]?.configured))
+      } else if (configurationResult.status === 'rejected' && statusResult.status === 'fulfilled') {
+        setWebhookConfigured(Boolean(statusResult.value.webhookConfigured))
+      }
+      if (statusResult.status === 'rejected' && configurationResult.status === 'fulfilled') {
+        setMessage(statusResult.reason?.message ?? '读取插件状态失败')
+      }
+    })
     return () => { active = false }
   }, [credentials, remote])
 
@@ -61,11 +75,16 @@ function Card({ scope, remote, credentials }) {
         unwrapRemote(await credentials.unset(FEISHU_WEBHOOK_REF))
         setWebhookConfigured(false)
       }
-      const savedConfiguration = unwrapRemote(await remote.configuration())
-      setWebhook(savedConfiguration.webhookUrl ?? '')
-      setWebhookConfigured(Boolean(savedConfiguration.webhookUrl))
-      setStatus(unwrapRemote(await remote.status()))
-      setMessage('配置已保存')
+      let hostCurrent = true
+      try {
+        const savedConfiguration = unwrapRemote(await remote.configuration())
+        setWebhook(savedConfiguration.webhookUrl ?? '')
+        setWebhookConfigured(Boolean(savedConfiguration.webhookUrl))
+      } catch {
+        hostCurrent = false
+      }
+      try { setStatus(unwrapRemote(await remote.status())) } catch { /* keep last known status */ }
+      setMessage(hostCurrent ? '配置已保存' : '配置已保存；请重启 DSH 以加载当前 Host 并读取 Webhook 地址。')
     } catch (error) {
       setMessage(error?.message ?? '保存失败')
     } finally { setBusy(false) }
