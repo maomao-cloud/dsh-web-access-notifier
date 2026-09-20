@@ -14,7 +14,7 @@ test('client bundle mounts Remote and consumes it through a child scope', () => 
           plugin = definition.factory((request) => {
             if (request === 'react') return { createElement() {}, useEffect() {}, useState(value) { return [value, () => {}] } }
             if (request === '@deepseek-ai/dsh-client-ui-primitives') return {
-              Button() {}, DisclosureRow() {}, Input() {}, Switch() {}
+              Button() {}, IconChevronDownOutline14() {}, Input() {}, Switch() {}
             }
             throw new Error(`unexpected client dependency: ${request}`)
           })
