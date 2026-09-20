@@ -5,6 +5,7 @@ export const SETTINGS_NAMESPACE = 'dsh-web-access-notifier'
 export const FEISHU_WEBHOOK_REF = 'feishuWebhookUrl'
 export const SettingsSchema = z.object({
   enabled: z.boolean().default(true),
+  hostName: z.string().default(''),
   publicOrigin: z.string().default('')
 })
 

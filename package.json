@@ -1,6 +1,6 @@
 {
   "name": "dsh-web-access-notifier",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "DSH Web 访问通知器：通过飞书机器人发送当前 DSH Web 访问地址。",
   "type": "module",
   "main": "host/index.js",
@@ -35,7 +35,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.js",
-    "check": "node --check host/index.js && node --check host/notifier.js && node --check client/index.js && node --check client.js"
+    "check": "node --check host/index.js && node --check host/notifier.js && node --check host/message.js && node --check client/index.js && node --check client.js"
   },
   "dependencies": {
     "@deepseek-ai/cordis": "^4.0.2",

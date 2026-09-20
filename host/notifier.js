@@ -1,14 +1,16 @@
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { FEISHU_WEBHOOK_REF } from './config.js'
+import { buildNotificationText, resolveHostName } from './message.js'
 import { buildAuthenticatedUrl } from './token-url.js'
 
 function now() { return new Date().toISOString() }
 function errorCode(error) { return typeof error?.code === 'string' ? error.code : 'NOTIFIER_ERROR' }
 
 export class Notifier {
-  constructor(ctx, { settingsScope, feishuClient, logger = console } = {}) {
+  constructor(ctx, { settingsScope, defaultHostName = 'unknown-host', feishuClient, logger = console } = {}) {
     this.ctx = ctx
     this.settingsScope = settingsScope
+    this.defaultHostName = String(defaultHostName).trim() || 'unknown-host'
     this.feishuClient = feishuClient
     this.logger = logger
     this.state = {
@@ -37,13 +39,14 @@ export class Notifier {
   }
 
   async sendNotification({ force = false, type = 'manual' } = {}) {
-    const config = this.settingsScope?.get?.() ?? { enabled: true, publicOrigin: '' }
+    const config = this.settingsScope?.get?.() ?? { enabled: true, hostName: '', publicOrigin: '' }
     if (!force && !config.enabled) return { ok: false, skipped: true, reason: 'DISABLED', status: this.status() }
     if (!this.state.serviceReady) throw new Error('DSH Web service is not ready')
 
     this.state.lastAttemptAt = now()
     this.state.lastErrorCode = null
     try {
+      const hostName = resolveHostName(config.hostName, this.defaultHostName)
       const publicOrigin = String(config.publicOrigin ?? '').trim()
       if (!publicOrigin) throw Object.assign(new Error('publicOrigin is not configured'), { code: 'PUBLIC_ORIGIN_NOT_CONFIGURED' })
       const webhook = await this.refreshCredentialState()
@@ -54,7 +57,7 @@ export class Notifier {
       this.state.tokenLength = tokenLength
       await this.feishuClient.send(webhook, {
         msg_type: 'text',
-        content: { text: `🔐 DSH Web 访问地址已更新\n\n访问地址：\n${url}\n\n更新时间：${new Date().toLocaleString('zh-CN', { timeZoneName: 'short' })}\n通知类型：${type === 'auto' ? '自动启动通知' : '手动发送'}` }
+        content: { text: buildNotificationText({ hostName, url, type }) }
       })
       this.state.lastSuccessAt = now()
       return { ok: true, status: this.status() }

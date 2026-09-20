@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { normalizePublicOrigin } from '../host/validation.js'
 import { buildAuthenticatedUrl } from '../host/token-url.js'
 import { FeishuClient } from '../host/feishu-client.js'
+import { buildNotificationText, resolveHostName } from '../host/message.js'
 
 function response(status, body = {}) {
   return { ok: status >= 200 && status < 300, status, json: async () => body }
@@ -37,6 +38,23 @@ test('retries transient Feishu failures and succeeds', async () => {
   await client.send('https://open.feishu.cn/hook/opaque', { msg_type: 'text' })
   assert.equal(attempts, 3)
   assert.deepEqual(waits, [5, 30])
+})
+
+test('uses a custom host name and otherwise falls back to the system host name', () => {
+  assert.equal(resolveHostName('  production-dsh  ', 'pod-default'), 'production-dsh')
+  assert.equal(resolveHostName('', 'pod-default'), 'pod-default')
+  assert.equal(resolveHostName('  ', ''), 'unknown-host')
+})
+
+test('includes the effective host name in Feishu notification text', () => {
+  const text = buildNotificationText({
+    hostName: 'dsh-worker-02',
+    url: 'https://dsh.example.com/?token=opaque',
+    type: 'auto',
+    date: new Date('2026-09-20T12:00:00Z')
+  })
+  assert.match(text, /主机名称：dsh-worker-02/)
+  assert.match(text, /通知类型：自动启动通知/)
 })
 
 test('does not expose webhook or token in status-shaped state', async () => {

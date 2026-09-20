@@ -9,6 +9,7 @@ DSH Web 访问通知器：DSH Web 服务启动完成后，通过 DSH 原生 `Con
 - 配置写入 DSH `settings` namespace：`dsh-web-access-notifier`；
 - Webhook 通过 DSH `credentials` 的 `feishuWebhookUrl` 保存，并在已认证的插件配置页面中明文显示和编辑；
 - 配置卡片按 DSH 原生插件卡片结构呈现，并复用官方 `Switch`、`Input`、`Button` 与折叠图标 primitives；
+- 通知包含主机名称：默认读取启动机器的系统 hostname，也可在设置页填写自定义名称；
 - DSH 启动后同一进程只自动发送一次；手动发送始终强制重新获取 Token；
 - 飞书请求支持超时、非 2xx、业务错误和有限重试（立即、5 秒、30 秒）；
 - 通知失败只记录脱敏错误，不阻断 DSH 主进程；
@@ -21,7 +22,7 @@ DSH Web 访问通知器：DSH Web 服务启动完成后，通过 DSH 原生 `Con
 ```bash
 dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier
 # 或安装已发布的 tarball
-dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier-0.2.0.tgz
+dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier-0.3.0.tgz
 ```
 
 安装后，Profile 会自动合成 `dsh-web-access-notifier` Host row，Client Plugin 由 `dsh.client` 声明自动进入 Web Client bundle。安装或升级后必须重启 DSH 进程：浏览器端 bundle 可以提前刷新，但已运行的 Host Remote 不会因此替换；未重启时新 Client 调用新 Remote 方法会得到 HTTP 404。建议首次测试使用独立 Profile：
@@ -38,6 +39,7 @@ dsh --profile dsh-notifier-test --no-open
 - id: dsh-web-access-notifier
   config:
     enabled: true
+    hostName: production-dsh
     publicOrigin: https://dsh.example.com
     timeoutMs: 8000
 ```
@@ -49,6 +51,7 @@ dsh --profile dsh-notifier-test --no-open
 | 字段 | 默认值 | 说明 |
 | --- | --- | --- |
 | `enabled` | `true` | 是否发送自动启动通知 |
+| `hostName` | `""` | 通知中显示的主机名称；留空时自动使用启动机器的系统 hostname |
 | `publicOrigin` | `""` | 仅允许 `http`/`https` origin；不能有路径、query、fragment 或用户信息 |
 | `timeoutMs` | `8000` | 飞书单次请求超时 |
 

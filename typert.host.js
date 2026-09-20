@@ -16,6 +16,7 @@ const sendResultSchema = z.object({
 
 const configurationSchema = z.object({
   enabled: z.boolean(),
+  hostName: z.string(),
   publicOrigin: z.string(),
   webhookUrl: z.string()
 })
@@ -52,7 +53,7 @@ export const TYPERT = {
       ],
       types: [
         { name: 'NotifierStatus', declaration: 'interface NotifierStatus { serviceReady: boolean; webhookConfigured: boolean; lastAttemptAt: string | null; lastSuccessAt: string | null; lastErrorCode: string | null; tokenLength: number | null }' },
-        { name: 'NotifierConfiguration', declaration: 'interface NotifierConfiguration { enabled: boolean; publicOrigin: string; webhookUrl: string }' },
+        { name: 'NotifierConfiguration', declaration: 'interface NotifierConfiguration { enabled: boolean; hostName: string; publicOrigin: string; webhookUrl: string }' },
         { name: 'SendResult', declaration: 'interface SendResult { ok: true; status: NotifierStatus }' }
       ]
     }],

@@ -14,8 +14,9 @@ function unwrapRemote(result) {
 
 function Card({ scope, remote, credentials }) {
   const snapshot = scope.getSnapshot()
-  const value = snapshot.value ?? { enabled: true, publicOrigin: '' }
+  const value = snapshot.value ?? { enabled: true, hostName: '', publicOrigin: '' }
   const [enabled, setEnabled] = useState(Boolean(value.enabled))
+  const [hostName, setHostName] = useState(value.hostName ?? '')
   const [publicOrigin, setPublicOrigin] = useState(value.publicOrigin ?? '')
   const [webhook, setWebhook] = useState('')
   const [webhookConfigured, setWebhookConfigured] = useState(false)
@@ -25,8 +26,9 @@ function Card({ scope, remote, credentials }) {
   const [message, setMessage] = useState('')
 
   useEffect(() => scope.subscribe(() => {
-    const next = scope.getSnapshot().value ?? { enabled: true, publicOrigin: '' }
+    const next = scope.getSnapshot().value ?? { enabled: true, hostName: '', publicOrigin: '' }
     setEnabled(Boolean(next.enabled))
+    setHostName(next.hostName ?? '')
     setPublicOrigin(next.publicOrigin ?? '')
   }), [scope])
 
@@ -41,6 +43,7 @@ function Card({ scope, remote, credentials }) {
       if (configurationResult.status === 'fulfilled') {
         const configuration = configurationResult.value
         setEnabled(Boolean(configuration.enabled))
+        setHostName(configuration.hostName ?? '')
         setPublicOrigin(configuration.publicOrigin ?? '')
         setWebhook(configuration.webhookUrl ?? '')
         setWebhookConfigured(Boolean(configuration.webhookUrl))
@@ -65,6 +68,7 @@ function Card({ scope, remote, credentials }) {
     try {
       await scope.mutate([
         { op: 'set', path: ['enabled'], value: enabled },
+        { op: 'set', path: ['hostName'], value: hostName.trim() },
         { op: 'set', path: ['publicOrigin'], value: publicOrigin }
       ], snapshot.revision)
       if (webhook.trim()) {
@@ -78,6 +82,7 @@ function Card({ scope, remote, credentials }) {
       let hostCurrent = true
       try {
         const savedConfiguration = unwrapRemote(await remote.configuration())
+        setHostName(savedConfiguration.hostName ?? '')
         setWebhook(savedConfiguration.webhookUrl ?? '')
         setWebhookConfigured(Boolean(savedConfiguration.webhookUrl))
       } catch {
@@ -136,6 +141,10 @@ function Card({ scope, remote, credentials }) {
     React.createElement('label', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 } },
       React.createElement('span', null, '启用自动通知'),
       React.createElement(Switch, { checked: enabled, onChange: setEnabled, label: '启用自动通知', disabled: busy })
+    ),
+    React.createElement('label', { style: { display: 'grid', gap: 6 } },
+      React.createElement('span', null, '主机名称'),
+      React.createElement(Input, { type: 'text', value: hostName, placeholder: '留空时自动使用启动机器名称', onChange: (event) => setHostName(event.target.value), autoComplete: 'off', disabled: busy })
     ),
     React.createElement('label', { style: { display: 'grid', gap: 6 } },
       React.createElement('span', null, `Feishu Webhook：${webhookConfigured ? '已配置' : '未配置'}`),

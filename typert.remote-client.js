@@ -12,6 +12,7 @@ const statusSchema = z.object({
 const sendResultSchema = z.object({ ok: z.literal(true), status: statusSchema })
 const configurationSchema = z.object({
   enabled: z.boolean(),
+  hostName: z.string(),
   publicOrigin: z.string(),
   webhookUrl: z.string()
 })

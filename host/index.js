@@ -1,7 +1,9 @@
+import { hostname as getSystemHostname } from 'node:os'
 import z from '@deepseek-ai/schemastery'
 import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { FeishuClient } from './feishu-client.js'
+import { resolveHostName } from './message.js'
 import { Notifier } from './notifier.js'
 import { FEISHU_WEBHOOK_REF, SETTINGS_NAMESPACE, SettingsSchema, validateSettings } from './config.js'
 
@@ -9,6 +11,7 @@ export const name = 'dsh-web-access-notifier'
 export const inject = ['webServer', 'connection']
 export const Config = z.object({
   enabled: z.boolean().default(true),
+  hostName: z.string().default(''),
   publicOrigin: z.string().default(''),
   timeoutMs: z.natural().min(100).max(120_000).default(8_000)
 })
@@ -21,12 +24,14 @@ export class DshWebAccessNotifier extends TypertRemoteService {
     super(ctx, SERVICE_KEY, { namespace: 'dsh-web-access-notifier' })
     this.ctx = ctx
     this.config = config
+    this.defaultHostName = resolveHostName('', getSystemHostname())
     this.settingsScope = ctx.get('settings')?.register(SETTINGS_NAMESPACE, SettingsSchema, {
-      base: { enabled: config.enabled ?? true, publicOrigin: config.publicOrigin ?? '' },
+      base: { enabled: config.enabled ?? true, hostName: config.hostName ?? '', publicOrigin: config.publicOrigin ?? '' },
       validate: validateSettings
     })
     this.notifier = new Notifier(ctx, {
       settingsScope: this.settingsScope,
+      defaultHostName: this.defaultHostName,
       feishuClient: new FeishuClient({ timeoutMs: config.timeoutMs ?? 8_000 }),
       logger: console
     })
@@ -39,12 +44,14 @@ export class DshWebAccessNotifier extends TypertRemoteService {
   async configuration() {
     const settings = this.settingsScope?.get?.() ?? {
       enabled: this.config.enabled ?? true,
+      hostName: this.config.hostName ?? '',
       publicOrigin: this.config.publicOrigin ?? ''
     }
     const resolved = await this.ctx.get('credentials')?.resolve(credentialRef(FEISHU_WEBHOOK_REF))
     this.notifier.state.webhookConfigured = Boolean(resolved?.value)
     return {
       enabled: Boolean(settings.enabled),
+      hostName: resolveHostName(settings.hostName, this.defaultHostName),
       publicOrigin: String(settings.publicOrigin ?? ''),
       webhookUrl: String(resolved?.value ?? '')
     }
@@ -69,6 +76,7 @@ export class DshWebAccessNotifier extends TypertRemoteService {
 export function apply(ctx, config = {}) {
   const serviceConfig = {
     enabled: config.enabled ?? true,
+    hostName: config.hostName ?? '',
     publicOrigin: config.publicOrigin ?? '',
     timeoutMs: config.timeoutMs ?? 8_000
   }
