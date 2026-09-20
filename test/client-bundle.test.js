@@ -26,6 +26,8 @@ test('client bundle mounts Remote and consumes it through a child scope', () => 
     assert.match(source, /Promise\.allSettled/)
     assert.match(source, /credentials\.describe\(\[FEISHU_WEBHOOK_REF\]\)/)
     assert.match(source, /请重启 DSH 以加载当前 Host/)
+    assert.match(source, /Feishu Webhook/)
+    assert.doesNotMatch(source, /credentials\.unset\(FEISHU_WEBHOOK_REF\)/)
     assert.deepEqual(Array.from(plugin.inject), ['remote'])
 
     let mounted

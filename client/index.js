@@ -75,9 +75,6 @@ function Card({ scope, remote, credentials }) {
         unwrapRemote(await credentials.set(FEISHU_WEBHOOK_REF, webhook.trim()))
         setWebhook(webhook.trim())
         setWebhookConfigured(true)
-      } else if (webhookConfigured) {
-        unwrapRemote(await credentials.unset(FEISHU_WEBHOOK_REF))
-        setWebhookConfigured(false)
       }
       let hostCurrent = true
       try {
@@ -135,7 +132,7 @@ function Card({ scope, remote, credentials }) {
     React.createElement('div', { style: { display: 'grid', gap: 4 } },
       React.createElement('div', null, `当前服务状态：${statusText}`),
       status && React.createElement('div', { style: { fontSize: 12, color: 'var(--dsw-alias-label-tertiary, rgba(127,127,127,0.8))' } },
-        `Webhook：${status.webhookConfigured ? '已配置' : '未配置'}；最近成功：${status.lastSuccessAt ?? '暂无'}；错误：${status.lastErrorCode ?? '无'}`
+        `最近成功：${status.lastSuccessAt ?? '暂无'}；错误：${status.lastErrorCode ?? '无'}`
       )
     ),
     React.createElement('label', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 } },
@@ -147,7 +144,7 @@ function Card({ scope, remote, credentials }) {
       React.createElement(Input, { type: 'text', value: hostName, placeholder: '留空时自动使用启动机器名称', onChange: (event) => setHostName(event.target.value), autoComplete: 'off', disabled: busy })
     ),
     React.createElement('label', { style: { display: 'grid', gap: 6 } },
-      React.createElement('span', null, `Feishu Webhook：${webhookConfigured ? '已配置' : '未配置'}`),
+      React.createElement('span', null, 'Feishu Webhook'),
       React.createElement(Input, { type: 'url', value: webhook, placeholder: 'https://open.feishu.cn/open-apis/bot/v2/hook/...', onChange: (event) => setWebhook(event.target.value), autoComplete: 'off', disabled: busy })
     ),
     React.createElement('label', { style: { display: 'grid', gap: 6 } },
