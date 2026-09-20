@@ -1,5 +1,5 @@
 import z from '@deepseek-ai/schemastery'
-import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { FeishuClient } from './feishu-client.js'
 import { Notifier } from './notifier.js'
 import { SETTINGS_NAMESPACE, SettingsSchema, validateSettings } from './config.js'
@@ -14,21 +14,10 @@ export const Config = z.object({
 
 const SERVICE_KEY = 'dshWebAccessNotifier'
 const rootsNotified = new WeakSet()
-const remoteInitializers = []
-
-function registerRemote(method) {
-  Remote(method, {
-    name: method.name,
-    static: false,
-    private: false,
-    addInitializer(initializer) { remoteInitializers.push(initializer) }
-  })
-}
 
 export class DshWebAccessNotifier extends TypertRemoteService {
   constructor(ctx, config = {}) {
     super(ctx, SERVICE_KEY, { namespace: 'dsh-web-access-notifier' })
-    for (const initializer of remoteInitializers) initializer.call(this)
     this.ctx = ctx
     this.config = config
     this.settingsScope = ctx.get('settings')?.register(SETTINGS_NAMESPACE, SettingsSchema, {
@@ -61,8 +50,6 @@ export class DshWebAccessNotifier extends TypertRemoteService {
     }
   }
 }
-registerRemote(DshWebAccessNotifier.prototype.send)
-registerRemote(DshWebAccessNotifier.prototype.status)
 
 export function apply(ctx, config = {}) {
   const serviceConfig = {
