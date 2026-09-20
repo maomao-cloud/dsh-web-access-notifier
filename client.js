@@ -4,6 +4,7 @@ window.__ModuleLoader__.load({
     const module = { exports: {} }
     const exports = module.exports
     const React = require('react')
+    const { Button, DisclosureRow, Input, Switch } = require('@deepseek-ai/dsh-client-ui-primitives')
     const { useEffect, useState } = React
 
     const SETTINGS_NAMESPACE = 'dsh-web-access-notifier'
@@ -64,6 +65,7 @@ window.__ModuleLoader__.load({
       const [webhook, setWebhook] = useState('')
       const [webhookConfigured, setWebhookConfigured] = useState(false)
       const [status, setStatus] = useState(null)
+      const [open, setOpen] = useState(false)
       const [busy, setBusy] = useState(false)
       const [message, setMessage] = useState('')
 
@@ -127,32 +129,38 @@ window.__ModuleLoader__.load({
       }
 
       const statusText = status?.serviceReady ? 'ready' : 'not ready'
-      return React.createElement('section', { style: { display: 'grid', gap: 12, padding: 16 } },
-        React.createElement('h3', null, 'DSH Web Access Notifier'),
-        React.createElement('div', null, `当前服务状态：${statusText}`),
-        status && React.createElement('div', { style: { fontSize: 12, opacity: 0.8 } },
-          `Webhook：${status.webhookConfigured ? '已配置' : '未配置'}；最近成功：${status.lastSuccessAt ?? '暂无'}；错误：${status.lastErrorCode ?? '无'}`
-        ),
-        React.createElement('details', { style: { border: '1px solid rgba(128, 128, 128, 0.3)', borderRadius: 4, padding: '8px 12px' } },
-          React.createElement('summary', { style: { cursor: 'pointer', fontWeight: 600 } }, '通知配置'),
-          React.createElement('div', { style: { display: 'grid', gap: 12, paddingTop: 12 } },
-            React.createElement('label', null,
-              React.createElement('input', { type: 'checkbox', checked: enabled, onChange: (event) => setEnabled(event.target.checked) }),
-              ' 启用自动通知'
-            ),
-            React.createElement('label', { style: { display: 'grid', gap: 4 } },
-              React.createElement('span', null, `Feishu Webhook：${webhookConfigured ? '已配置' : '未配置'}`),
-              React.createElement('input', { type: 'url', value: webhook, placeholder: 'https://open.feishu.cn/open-apis/bot/v2/hook/...', onChange: (event) => setWebhook(event.target.value), autoComplete: 'off' })
-            ),
-            React.createElement('label', { style: { display: 'grid', gap: 4 } },
-              React.createElement('span', null, '外部访问地址'),
-              React.createElement('input', { type: 'url', value: publicOrigin, placeholder: 'https://dsh.example.com', onChange: (event) => setPublicOrigin(event.target.value) })
-            ),
-            React.createElement('button', { type: 'button', disabled: busy, onClick: save, style: { justifySelf: 'start' } }, busy ? '处理中…' : '保存配置')
+      return React.createElement('li', { style: { listStyle: 'none' } },
+        React.createElement(DisclosureRow, {
+          title: 'DSH Web Access Notifier',
+          expandable: true,
+          expandOnRowClick: true,
+          open,
+          onToggle: () => setOpen(!open)
+        }, React.createElement('div', { style: { display: 'grid', gap: 16, padding: '12px 16px 16px' } },
+          React.createElement('div', { style: { display: 'grid', gap: 4 } },
+            React.createElement('div', null, `当前服务状态：${statusText}`),
+            status && React.createElement('div', { style: { fontSize: 12, opacity: 0.72 } },
+              `Webhook：${status.webhookConfigured ? '已配置' : '未配置'}；最近成功：${status.lastSuccessAt ?? '暂无'}；错误：${status.lastErrorCode ?? '无'}`
+            )
+          ),
+          React.createElement('label', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 } },
+            React.createElement('span', null, '启用自动通知'),
+            React.createElement(Switch, { checked: enabled, onChange: setEnabled, label: '启用自动通知', disabled: busy })
+          ),
+          React.createElement('label', { style: { display: 'grid', gap: 6 } },
+            React.createElement('span', null, `Feishu Webhook：${webhookConfigured ? '已配置' : '未配置'}`),
+            React.createElement(Input, { type: 'url', value: webhook, placeholder: 'https://open.feishu.cn/open-apis/bot/v2/hook/...', onChange: (event) => setWebhook(event.target.value), autoComplete: 'off', disabled: busy })
+          ),
+          React.createElement('label', { style: { display: 'grid', gap: 6 } },
+            React.createElement('span', null, '外部访问地址'),
+            React.createElement(Input, { type: 'url', value: publicOrigin, placeholder: 'https://dsh.example.com', onChange: (event) => setPublicOrigin(event.target.value), disabled: busy })
+          ),
+          message && React.createElement('div', { role: 'status' }, message),
+          React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 8 } },
+            React.createElement(Button, { variant: 'outline', disabled: busy || !status?.serviceReady, onClick: sendNow }, '立即发送当前 Token'),
+            React.createElement(Button, { variant: 'primary', disabled: busy, onClick: save }, busy ? '处理中…' : '保存')
           )
-        ),
-        React.createElement('button', { type: 'button', disabled: busy || !status?.serviceReady, onClick: sendNow, style: { justifySelf: 'start' } }, '立即发送当前 Token'),
-        message && React.createElement('div', { role: 'status' }, message)
+        ))
       )
     }
 

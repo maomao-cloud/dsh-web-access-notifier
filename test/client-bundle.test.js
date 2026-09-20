@@ -12,8 +12,11 @@ test('client bundle mounts Remote and consumes it through a child scope', () => 
         load(definition) {
           assert.equal(definition.id, 'dsh-web-access-notifier')
           plugin = definition.factory((request) => {
-            assert.equal(request, 'react')
-            return { createElement() {}, useEffect() {}, useState(value) { return [value, () => {}] } }
+            if (request === 'react') return { createElement() {}, useEffect() {}, useState(value) { return [value, () => {}] } }
+            if (request === '@deepseek-ai/dsh-client-ui-primitives') return {
+              Button() {}, DisclosureRow() {}, Input() {}, Switch() {}
+            }
+            throw new Error(`unexpected client dependency: ${request}`)
           })
         }
       }

@@ -8,6 +8,7 @@ DSH Web 访问通知器：DSH Web 服务启动完成后，通过 DSH 原生 `Con
 - 仅依赖 `webServer`、`connection` 和 Loader settle，不解析日志、不读取 Token 文件、不生成 Token；
 - 配置写入 DSH `settings` namespace：`dsh-web-access-notifier`；
 - Webhook 通过 DSH `credentials` 的 `feishuWebhookUrl` 保存，并在已认证的插件配置页面中明文显示和编辑；
+- 配置卡片复用 DSH 官方 `DisclosureRow`、`Switch`、`Input` 与 `Button` primitives，交互和设置页保持一致；
 - DSH 启动后同一进程只自动发送一次；手动发送始终强制重新获取 Token；
 - 飞书请求支持超时、非 2xx、业务错误和有限重试（立即、5 秒、30 秒）；
 - 通知失败只记录脱敏错误，不阻断 DSH 主进程；
