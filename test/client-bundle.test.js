@@ -3,39 +3,56 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import vm from 'node:vm'
 
-test('client bundle mounts its Remote namespace before using it', async () => {
-  const source = await readFile(new URL('../client.js', import.meta.url), 'utf8')
-  let plugin
-  const window = {
-    __ModuleLoader__: {
-      load(definition) {
-        assert.equal(definition.id, 'dsh-web-access-notifier')
-        plugin = definition.factory((request) => {
-          assert.equal(request, 'react')
-          return { createElement() {}, useEffect() {}, useState(value) { return [value, () => {}] } }
+test('client bundle mounts Remote and consumes it through a child scope', () => {
+  const run = async () => {
+    const source = await readFile(new URL('../client.js', import.meta.url), 'utf8')
+    let plugin
+    const window = {
+      __ModuleLoader__: {
+        load(definition) {
+          assert.equal(definition.id, 'dsh-web-access-notifier')
+          plugin = definition.factory((request) => {
+            assert.equal(request, 'react')
+            return { createElement() {}, useEffect() {}, useState(value) { return [value, () => {}] } }
+          })
+        }
+      }
+    }
+    vm.runInNewContext(source, { window, TypeError, Error })
+    assert.ok(plugin)
+    assert.deepEqual(Array.from(plugin.inject), ['remote'])
+
+    let mounted
+    const parentRemote = new Proxy({
+      $mount(contribution) {
+        mounted = contribution
+        return Promise.resolve(async () => {})
+      }
+    }, {
+      get(target, key) {
+        if (key === 'dsh-web-access-notifier') throw new Error('parent context cannot read self-mounted namespace')
+        return target[key]
+      }
+    })
+    const childRemote = {
+      credentials: {},
+      'dsh-web-access-notifier': { status() {}, send() {} }
+    }
+    const ctx = {
+      remote: parentRemote,
+      inject(dependencies, activate) {
+        assert.equal(dependencies.includes('remote.dsh-web-access-notifier'), true)
+        activate({
+          remote: childRemote,
+          settingsScope: { bind() { return {} } },
+          slots: { inject() {} }
         })
       }
     }
-  }
-  vm.runInNewContext(source, { window, TypeError, Error })
-  assert.ok(plugin)
-  assert.equal(plugin.inject.includes('remote.dsh-web-access-notifier'), false)
 
-  let mounted
-  const remote = {
-    credentials: {},
-    async $mount(contribution) {
-      mounted = contribution
-      this['dsh-web-access-notifier'] = { status() {}, send() {} }
-      return async () => {}
-    }
+    plugin.apply(ctx)
+    assert.equal(mounted.package, 'dsh-web-access-notifier')
+    assert.deepEqual(Array.from(mounted.descriptors, ({ method }) => method), ['status', 'send'])
   }
-  const ctx = {
-    remote,
-    settingsScope: { bind() { return {} } },
-    slots: { inject() {} }
-  }
-  await plugin.apply(ctx)
-  assert.equal(mounted.package, 'dsh-web-access-notifier')
-  assert.deepEqual(Array.from(mounted.descriptors, ({ method }) => method), ['status', 'send'])
+  return run()
 })

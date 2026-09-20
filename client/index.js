@@ -98,17 +98,25 @@ function Card({ scope, remote, credentials }) {
   )
 }
 
-export const inject = ['slots', 'settingsScope', 'remote', 'remote.credentials']
+export const inject = ['remote']
 
-export async function apply(ctx) {
-  await ctx.remote.$mount(TYPERT_REMOTE)
-  const scope = ctx.settingsScope.bind({ namespace: SETTINGS_NAMESPACE })
-  const remote = ctx.remote[REMOTE_NAMESPACE]
-  const credentials = ctx.remote.credentials
-  ctx.slots.inject('settings.plugin.item', () => ctx.slots.register({
-    name: 'settings.plugin.item',
-    key: SETTINGS_NAMESPACE,
-    order: 100,
-    inject: () => ({})
-  }, (props) => React.createElement(Card, { ...props, scope, remote, credentials })))
+export function apply(ctx) {
+  void ctx.remote.$mount(TYPERT_REMOTE)
+  ctx.inject([
+    'slots',
+    'settingsScope',
+    'remote',
+    'remote.credentials',
+    'remote.dsh-web-access-notifier'
+  ], (scopeCtx) => {
+    const scope = scopeCtx.settingsScope.bind({ namespace: SETTINGS_NAMESPACE })
+    const remote = scopeCtx.remote[REMOTE_NAMESPACE]
+    const credentials = scopeCtx.remote.credentials
+    scopeCtx.slots.inject('settings.plugin.item', () => scopeCtx.slots.register({
+      name: 'settings.plugin.item',
+      key: SETTINGS_NAMESPACE,
+      order: 100,
+      inject: () => ({})
+    }, (props) => React.createElement(Card, { ...props, scope, remote, credentials })))
+  })
 }
