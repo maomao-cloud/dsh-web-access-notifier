@@ -3,6 +3,17 @@
   "version": "0.3.1",
   "description": "DSH Web 访问通知器：通过飞书机器人发送当前 DSH Web 访问地址。",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maomao-cloud/dsh-web-access-notifier.git"
+  },
+  "bugs": {
+    "url": "https://github.com/maomao-cloud/dsh-web-access-notifier/issues"
+  },
+  "homepage": "https://github.com/maomao-cloud/dsh-web-access-notifier#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "host/index.js",
   "exports": {
     ".": "./host/index.js",
@@ -35,7 +46,8 @@
   },
   "scripts": {
     "test": "node --test test/*.test.js",
-    "check": "node --check host/index.js && node --check host/notifier.js && node --check host/message.js && node --check client/index.js && node --check client.js"
+    "check": "node --check host/index.js && node --check host/notifier.js && node --check host/message.js && node --check client/index.js && node --check client.js",
+    "publish:npm": "bash scripts/publish-npm.sh"
   },
   "dependencies": {
     "@deepseek-ai/cordis": "^4.0.2",

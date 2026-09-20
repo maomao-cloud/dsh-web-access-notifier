@@ -15,6 +15,44 @@ DSH Web 访问通知器：DSH Web 服务启动完成后，通过 DSH 原生 `Con
 - 通知失败只记录脱敏错误，不阻断 DSH 主进程；
 - 不使用 Kubernetes Secret、CronJob、Kubernetes API、PVC 状态文件或自定义 HTTP 未认证接口。
 
+## 发布与安装
+
+提交符合 `vX.Y.Z` 格式的 Git tag 后，GitHub Actions 会自动：
+
+1. 校验 tag 版本与 `package.json` 的 `version` 一致；
+2. 运行 `npm test` 和 `npm run check`；
+3. 执行 `npm pack`；
+4. 创建 GitHub Release，并附加生成的 `.tgz` 安装包。
+
+例如发布 `0.3.1`：
+
+```bash
+git tag v0.3.1
+git push origin v0.3.1
+```
+
+Release 创建后，其他人可以直接使用 GitHub Release tarball 安装：
+
+```bash
+dsh plugin --profile web add \
+  https://github.com/maomao-cloud/dsh-web-access-notifier/releases/download/v0.3.1/dsh-web-access-notifier-0.3.1.tgz
+```
+
+如果需要手动发布到 npm Registry，先登录 npm，再执行：
+
+```bash
+npm login
+npm run publish:npm
+```
+
+发布前只检查打包内容、不上传时：
+
+```bash
+npm run publish:npm -- --dry-run
+```
+
+脚本默认发布到 `https://registry.npmjs.org/`，也可以通过 `NPM_REGISTRY` 覆盖 Registry 地址。npm token、组织权限和包名占用情况由 npm Registry 校验。
+
 ## 安装与组合
 
 插件现在带有 `dsh.bundle.patch` 声明，可以直接使用 DSH 的插件管理命令安装：

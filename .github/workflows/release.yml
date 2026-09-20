@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Verify tag matches package version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+          const expectedTag = `v${packageJson.version}`
+          if (process.env.RELEASE_TAG !== expectedTag) {
+            throw new Error(`Tag ${process.env.RELEASE_TAG} does not match package version ${packageJson.version}; expected ${expectedTag}`)
+          }
+          NODE
+
+      - name: Verify package
+        run: |
+          npm test
+          npm run check
+
+      - name: Pack npm package
+        run: mkdir -p dist && npm pack --pack-destination dist
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" dist/*.tgz \
+            --title "$RELEASE_TAG" \
+            --generate-notes
