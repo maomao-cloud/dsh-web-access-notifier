@@ -1,6 +1,6 @@
 {
   "name": "dsh-web-access-notifier",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "DSH Web 访问通知器：通过飞书机器人发送当前 DSH Web 访问地址。",
   "type": "module",
   "repository": {
@@ -17,7 +17,7 @@
   "main": "host/index.js",
   "exports": {
     ".": "./host/index.js",
-    "./client": "./client.js",
+    "./client": "./client/client.js",
     "./host/config": "./host/config.js",
     "./host/token-url": "./host/token-url.js",
     "./host/feishu-client": "./host/feishu-client.js",
@@ -27,7 +27,16 @@
     "./remote": "./typert.remote-client.js",
     "./package.json": "./package.json"
   },
-  "files": ["host", "client", "client.js", "cordis.patch.yml", "typert.host.js", "typert.remote-client.js", "README.md", "LICENSE"],
+  "files": [
+    "host",
+    "client",
+    "scripts",
+    "cordis.patch.yml",
+    "typert.host.js",
+    "typert.remote-client.js",
+    "README.md",
+    "LICENSE"
+  ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -46,7 +55,10 @@
   },
   "scripts": {
     "test": "node --test test/*.test.js",
-    "check": "node --check host/index.js && node --check host/notifier.js && node --check host/message.js && node --check client/index.js && node --check client.js",
+    "build:client": "node scripts/build-client.mjs",
+    "check": "node --check host/index.js && node --check host/notifier.js && node --check client/index.js && node --check client/client.js",
+    "check:runtime": "node scripts/check-runtime.mjs",
+    "prepack": "pnpm run build:client",
     "publish:npm": "bash scripts/publish-npm.sh"
   },
   "dependencies": {
@@ -64,5 +76,8 @@
     "@deepseek-ai/dsh-client-ui-settings-plugins": "^0.1.5-rc.2",
     "@deepseek-ai/dsh-client-ui-slots": "^0.1.5-rc.2",
     "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "tsdown": "0.20.3"
   }
 }

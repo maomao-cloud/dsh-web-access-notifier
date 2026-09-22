@@ -24,24 +24,38 @@ DSH Web 访问通知器：DSH Web 服务启动完成后，通过 DSH 原生 `Con
 3. 执行 `npm pack`；
 4. 创建 GitHub Release，并附加生成的 `.tgz` 安装包。
 
-例如发布 `0.3.1`：
+例如发布 `0.3.2`：
 
 ```bash
-git tag v0.3.1
-git push origin v0.3.1
+git tag v0.3.2
+git push origin v0.3.2
 ```
 
 Release 创建后，其他人可以直接使用 GitHub Release tarball 安装：
 
 ```bash
 dsh plugin --profile web add \
-  https://github.com/maomao-cloud/dsh-web-access-notifier/releases/download/v0.3.1/dsh-web-access-notifier-0.3.1.tgz
+  https://github.com/maomao-cloud/dsh-web-access-notifier/releases/download/v0.3.2/dsh-web-access-notifier-0.3.2.tgz
 ```
+
+### npm 首次发布
+
+`dsh-web-access-notifier` 首次发布到 npm Registry 必须使用普通 `npm publish`。`npm stage publish` 要求包已经存在于 npm Registry，只适用于后续版本的 staged publishing。
+
+在已配置 npm 认证的 DSH Pod 中执行：
+
+```bash
+npm view dsh-web-access-notifier version --registry=https://registry.npmjs.org/
+npm publish --access public --registry=https://registry.npmjs.org/
+npm view dsh-web-access-notifier version --registry=https://registry.npmjs.org/
+```
+
+如果 npm 要求 2FA，直接在 CLI 交互提示中输入当前认证器生成的 6 位 OTP。不要把 OTP、recovery code 或 npm Token 写入仓库、命令参数、日志或 Kubernetes 配置。
 
 如果需要手动发布到 npm Registry，先登录 npm，再执行：
 
 ```bash
-npm login
+npm login --registry=https://registry.npmjs.org/
 npm run publish:npm
 ```
 
@@ -55,15 +69,24 @@ npm run publish:npm -- --dry-run
 
 ## 安装与组合
 
-插件现在带有 `dsh.bundle.patch` 声明，可以直接使用 DSH 的插件管理命令安装：
+插件带有 `dsh.bundle.patch` 声明，可以直接使用 DSH 的插件管理命令安装：
 
 ```bash
 dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier
 # 或安装已发布的 tarball
-dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier-0.3.1.tgz
+dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier-0.3.2.tgz
 ```
 
-安装后，Profile 会自动合成 `dsh-web-access-notifier` Host row，Client Plugin 由 `dsh.client` 声明自动进入 Web Client bundle。安装或升级后必须重启 DSH 进程：浏览器端 bundle 可以提前刷新，但已运行的 Host Remote 不会因此替换；未重启时新 Client 调用新 Remote 方法会得到 HTTP 404。建议首次测试使用独立 Profile：
+安装后，Profile 会自动合成 `dsh-web-access-notifier` Host row，Client Plugin 由 `dsh.client` 声明自动进入 Web Client bundle。安装或升级后必须重启 DSH 进程：浏览器端 bundle 可以提前刷新，但已运行的 Host Remote 不会因此替换；未重启时新 Client 调用新 Remote 方法会得到 HTTP 404。
+
+`0.3.2` 的 `exports["./client"]` 指向通过 `build:client` 生成的 `window.__ModuleLoader__.load(...)` bundle。不要继续使用早期把源代码直接暴露给 DSH Client Module Loader 的 tarball，因为这会触发 `loaded without registering`。升级时请移除旧包后重新安装：
+
+```bash
+dsh plugin --profile web remove dsh-web-access-notifier
+dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier-0.3.2.tgz
+```
+
+建议首次测试使用独立 Profile：
 
 ```bash
 dsh --profile dsh-notifier-test --from-default-profile web
@@ -95,11 +118,60 @@ dsh --profile dsh-notifier-test --no-open
 
 Webhook 不进入普通 settings，而是写入凭据引用 `feishuWebhookUrl`。插件通过已认证的专用 Remote 读取当前值并在折叠配置区中明文显示；完整 Token、完整访问 URL 和完整 Webhook 仍不会写入普通日志或状态对象。
 
-## 验证
+## 验证与启动故障排查
+
+先在插件源码或解包目录执行运行时依赖检查：
+
+```bash
+pnpm install --prod
+pnpm run check:runtime
+```
+
+`check:runtime` 会验证 Host Plugin 启动所需的运行时依赖是否可被 Node 解析。不要只复制源码目录或 tarball 内容后直接启动；`package.json` 中的 dependencies 不会自动安装。
+
+推荐通过 DSH profile 安装，确保依赖由 profile 的 `pnpm` 管理：
+
+```bash
+dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier
+# 已安装旧版本时，先移除再重新添加
+dsh plugin --profile web remove dsh-web-access-notifier
+dsh plugin --profile web add /absolute/path/to/dsh-web-access-notifier
+```
+
+如果 DSH 正在因插件导入失败而循环重启，先临时恢复 Web 服务：
+
+```bash
+# 备份 profile 清单
+cp "$DSH_HOME/profiles/web/package.json" "$DSH_HOME/profiles/web/package.json.bak"
+
+# 从 profile 的 dependencies 和 dsh.profile.bundles 中删除 dsh-web-access-notifier
+# 然后启动（不要让外层守护进程自动重启）
+dsh --profile web --no-open
+```
+
+也可以在部署目录直接补齐依赖后手动启动：
+
+```bash
+cd /work/bamhub-dsh/dsh-web-access-notifier
+pnpm install --prod
+pnpm run check:runtime
+dsh --profile web --no-open
+```
+
+从源码重新打包时先生成浏览器 bundle：
+
+```bash
+pnpm install
+pnpm run build:client
+```
+
+恢复插件后验证：
 
 ```bash
 npm test
 npm run check
+npm run check:runtime
+npm pack --dry-run
 ```
 
-测试覆盖外部 origin 校验、Token 改写、飞书重试/超时分类以及敏感字段不出现在状态对象。
+测试覆盖外部 origin 校验、Token 改写、飞书重试/超时分类、敏感字段不出现在状态对象，以及运行时依赖缺失时的诊断信息。
