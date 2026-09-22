@@ -1,0 +1,45 @@
+# 将此片段合并到实际 Deployment：
+# 1. 把 metadata.name 改成实际 Deployment 名称；
+# 2. 把 initContainers/containers 中的 name: app 改成实际业务容器名；
+# 3. 保留业务容器原有 env 与 volumeMounts。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dsh-web-access-notifier
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: init-git-identity
+          image: alpine/git:2.45.2
+          command:
+            - /bin/sh
+            - /opt/git-identity/init-git-identity.sh
+          envFrom:
+            - configMapRef:
+                name: git-identity
+          env:
+            - name: GIT_CONFIG_GLOBAL
+              value: /git-home/.gitconfig
+          volumeMounts:
+            - name: git-identity
+              mountPath: /git-home
+            - name: git-identity-init
+              mountPath: /opt/git-identity
+              readOnly: true
+      containers:
+        - name: app
+          env:
+            - name: GIT_CONFIG_GLOBAL
+              value: /git-home/.gitconfig
+          volumeMounts:
+            - name: git-identity
+              mountPath: /git-home
+      volumes:
+        - name: git-identity
+          persistentVolumeClaim:
+            claimName: git-identity
+        - name: git-identity-init
+          configMap:
+            name: git-identity-init
+            defaultMode: 0555

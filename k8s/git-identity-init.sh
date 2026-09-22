@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+: "${GIT_USER_NAME:?GIT_USER_NAME is required}"
+: "${GIT_USER_EMAIL:?GIT_USER_EMAIL is required}"
+: "${GIT_CONFIG_GLOBAL:?GIT_CONFIG_GLOBAL is required}"
+
+git config --file "$GIT_CONFIG_GLOBAL" user.name "$GIT_USER_NAME"
+git config --file "$GIT_CONFIG_GLOBAL" user.email "$GIT_USER_EMAIL"
+
+# 配置不包含凭据，允许非 root 业务容器读取 PVC 中的 Git 全局配置。
+chmod 644 "$GIT_CONFIG_GLOBAL"
+printf 'Configured Git identity: %s <%s>\n' "$GIT_USER_NAME" "$GIT_USER_EMAIL"
